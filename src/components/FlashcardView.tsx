@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Flashcard as FlashcardType, FlashcardDifficulty } from "@/types/flashcard";
@@ -20,12 +19,17 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
   const [flipped, setFlipped] = useState(false);
   const [animating, setAnimating] = useState(false);
 
+  // ✅ Reset flip state when new card is shown
+  useEffect(() => {
+    setFlipped(false);
+  }, [card]);
+
   const handleFlip = () => {
     if (animating) return;
-    
+
     setAnimating(true);
     setFlipped(!flipped);
-    
+
     setTimeout(() => {
       setAnimating(false);
     }, 500);
@@ -33,7 +37,7 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <Card 
+      <Card
         className={cn(
           "relative h-64 cursor-pointer w-full p-2 overflow-hidden",
           animating && "flip-card"
@@ -60,8 +64,8 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
               {card.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-4 justify-center">
                   {card.tags.map((tag, idx) => (
-                    <span 
-                      key={idx} 
+                    <span
+                      key={idx}
                       className="px-2 py-1 bg-accent text-accent-foreground text-xs rounded-full"
                     >
                       {tag}
@@ -75,7 +79,7 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
       </Card>
 
       <div className="flex justify-between mt-6">
-        <Button 
+        <Button
           variant="destructive"
           onClick={() => onReview(FlashcardDifficulty.HARD)}
           className="flex items-center gap-2"
@@ -83,8 +87,8 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
           <X size={18} />
           <span>Hard</span>
         </Button>
-        
-        <Button 
+
+        <Button
           variant="outline"
           onClick={() => onReview(FlashcardDifficulty.MEDIUM)}
           className="flex items-center gap-2"
@@ -92,8 +96,8 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
           <AlertTriangle size={18} />
           <span>Medium</span>
         </Button>
-        
-        <Button 
+
+        <Button
           variant="default"
           onClick={() => onReview(FlashcardDifficulty.EASY)}
           className="flex items-center gap-2"

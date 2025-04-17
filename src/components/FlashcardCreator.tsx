@@ -17,8 +17,9 @@ export const FlashcardCreator: React.FC<FlashcardCreatorProps> = ({
   onCardCreated,
   initialText = "",
 }) => {
-  const [front, setFront] = useState(initialText);
-  const [back, setBack] = useState("");
+  const [front, setFront] = useState("");
+  const [back, setBack] = useState(initialText);
+
   const [hint, setHint] = useState("");
   const [tags, setTags] = useState("");
   const { toast } = useToast();

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,179 +19,89 @@ export const FlashcardReview: React.FC<FlashcardReviewProps> = ({ onCreateNew })
   const [showHint, setShowHint] = useState(false);
   const [reviewMode, setReviewMode] = useState("manual");
   const { toast } = useToast();
-  
+
   useEffect(() => {
-    // Load flashcards when component mounts
-    const cards = storageService.getAllFlashcards();
-    setFlashcards(cards);
-    
-    // If no cards exist, create sample cards
-    if (cards.length === 0) {
-      storageService.populateSampleCards();
-      setFlashcards(storageService.getAllFlashcards());
-    }
+    const storedCards = storageService.getAllFlashcards();
+    setFlashcards(storedCards);
   }, []);
-  
+
   const handleReview = (difficulty: FlashcardDifficulty) => {
-    if (flashcards.length === 0) return;
-    
-    const currentCard = flashcards[currentIndex];
-    
-    // Save the review
-    storageService.saveReview({
-      cardId: currentCard.id,
-      difficulty
-    });
-    
-    // Show feedback
+    const updated = [...flashcards];
+    // Optionally save review state later
+    updated.splice(currentIndex, 1); // remove reviewed card
+    setFlashcards(updated);
+    setCurrentIndex((prev) => (prev >= updated.length ? 0 : prev));
+    setShowHint(false);
+
     toast({
-      title: `Marked as ${difficulty.toLowerCase()}`,
-      description: "Your progress has been saved",
+      title: "Card Reviewed",
+      description: `You marked this as ${difficulty}`,
     });
-    
-    // Move to next card
-    handleNextCard();
   };
-  
-  const handleNextCard = () => {
-    if (currentIndex < flashcards.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    } else {
-      // Cycle back to the first card
-      setCurrentIndex(0);
-      toast({
-        title: "Review complete",
-        description: "Starting from the first card again",
-      });
-    }
-  };
-  
-  const handlePrevCard = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-    } else {
-      // Cycle to the last card
-      setCurrentIndex(flashcards.length - 1);
-    }
-  };
-  
+
+  if (flashcards.length === 0) {
+    return (
+      <Card className="max-w-md mx-auto text-center p-6">
+        <CardHeader>
+          <CardTitle>No flashcards to review.</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={onCreateNew}>Create New</Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const currentCard = flashcards[currentIndex];
 
   return (
-    <div className="space-y-6">
-      <Tabs defaultValue="manual" value={reviewMode} onValueChange={setReviewMode}>
-        <TabsList className="grid w-full grid-cols-2 mb-4">
-          <TabsTrigger value="manual">Manual Review</TabsTrigger>
-          <TabsTrigger value="gesture">Gesture Review</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="manual" className="space-y-6">
-          {flashcards.length > 0 ? (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  onClick={handlePrevCard}
-                >
-                  <ChevronLeft size={16} />
-                </Button>
-                
-                <span className="text-sm text-muted-foreground">
-                  Card {currentIndex + 1} of {flashcards.length}
-                </span>
-                
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  onClick={handleNextCard}
-                >
-                  <ChevronRight size={16} />
-                </Button>
-              </div>
-              
-              <FlashcardView 
-                card={currentCard} 
-                onReview={handleReview}
-                showHint={showHint}
-              />
-              
-              <div className="flex justify-center">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setShowHint(!showHint)}
-                >
-                  {showHint ? "Hide Hint" : "Show Hint"}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <Card>
-              <CardContent className="p-6 text-center">
-                <p className="mb-4">No flashcards available for review.</p>
-                <Button onClick={onCreateNew}>Create New Flashcard</Button>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="gesture" className="space-y-6">
-          {flashcards.length > 0 ? (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  onClick={handlePrevCard}
-                >
-                  <ChevronLeft size={16} />
-                </Button>
-                
-                <span className="text-sm text-muted-foreground">
-                  Card {currentIndex + 1} of {flashcards.length}
-                </span>
-                
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  onClick={handleNextCard}
-                >
-                  <ChevronRight size={16} />
-                </Button>
-              </div>
-              
-              <GestureDetector 
-                onGestureDetected={handleReview}
-                isActive={reviewMode === "gesture"} 
-              />
-              
-              <FlashcardView 
-                card={currentCard} 
-                onReview={handleReview}
-                showHint={showHint}
-              />
-              
-              <div className="flex justify-center">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setShowHint(!showHint)}
-                >
-                  {showHint ? "Hide Hint" : "Show Hint"}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <Card>
-              <CardContent className="p-6 text-center">
-                <p className="mb-4">No flashcards available for review.</p>
-                <Button onClick={onCreateNew}>Create New Flashcard</Button>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-      </Tabs>
-    </div>
+    <Tabs value={reviewMode} onValueChange={setReviewMode} className="w-full max-w-md mx-auto">
+      <TabsList className="grid grid-cols-2 mb-4">
+        <TabsTrigger value="manual">Manual</TabsTrigger>
+        <TabsTrigger value="gesture">Gesture</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="manual">
+        <FlashcardView
+          card={currentCard}
+          onReview={handleReview}
+          showHint={showHint}
+        />
+        <div className="flex justify-between mt-4">
+          <Button variant="ghost" onClick={() => setShowHint(!showHint)}>
+            {showHint ? "Hide Hint" : "Show Hint"}
+          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setCurrentIndex((prev) => Math.max(prev - 1, 0))}
+              disabled={currentIndex === 0}
+            >
+              <ChevronLeft size={16} />
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setCurrentIndex((prev) => Math.min(prev + 1, flashcards.length - 1))}
+              disabled={currentIndex === flashcards.length - 1}
+            >
+              <ChevronRight size={16} />
+            </Button>
+          </div>
+        </div>
+      </TabsContent>
+
+      <TabsContent value="gesture">
+        <GestureDetector
+         onGestureDetected={handleReview}
+         isActive={true} // or toggle this with state later if needed
+       />
+      <FlashcardView
+    card={currentCard}
+    onReview={handleReview}
+    showHint={showHint}
+  />
+</TabsContent>
+
+    </Tabs>
   );
 };
