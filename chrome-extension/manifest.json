@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Gesture Flashcard Saver",
+  "version": "1.0",
+  "description": "Highlight any text on any page and save it as a flashcard.",
+  "permissions": [
+    "storage",
+    "contextMenus",
+    "tabs",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "http://localhost:8080/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://localhost:8080/*"],
+      "js": ["content.js"]
+    }
+  ]
+}

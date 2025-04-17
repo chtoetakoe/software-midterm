@@ -1,23 +1,75 @@
-
-import React, { useState } from "react";
+// In src/pages/Index.tsx
+import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FlashcardCreator } from "@/components/FlashcardCreator";
 import { FlashcardReview } from "@/components/FlashcardReview";
-import { TextSelector } from "@/components/TextSelector";
 import { BrainCircuit, BookText, PlusCircle } from "lucide-react";
+import { Flashcard } from "@/types/flashcard";
+import { storageService } from "@/services/storage-service";
+import { useToast } from "@/components/ui/use-toast";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("review");
-  const [selectedText, setSelectedText] = useState("");
+  const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
+  const { toast } = useToast();
   
-  const handleTextSelected = (text: string) => {
-    setSelectedText(text);
-    setActiveTab("create");
-  };
+  // Load flashcards on mount
+  useEffect(() => {
+    const storedCards = storageService.getAllFlashcards();
+    setFlashcards(storedCards);
+  }, []);
   
+  // Set up listener for Chrome extension messages
+  useEffect(() => {
+    const handleExtensionMessage = (event: MessageEvent) => {
+      console.log("Message received:", event);
+      
+      if (event.data && event.data.type === "FROM_EXTENSION") {
+        console.log("🎯 React app received flashcard:", event.data.flashcard);
+        
+        // Transform the data to match your Flashcard type
+        // The extension data might have createdAt as a string, so we convert it to Date
+        const extensionFlashcard = event.data.flashcard;
+        const flashcardData = {
+          id: extensionFlashcard.id,
+          front: extensionFlashcard.front,
+          back: extensionFlashcard.back,
+          hint: extensionFlashcard.hint || "",
+          tags: extensionFlashcard.tags || [],
+          createdAt: new Date(extensionFlashcard.createdAt)
+        };
+        
+        // Save the flashcard using your storage service
+        const newFlashcard = storageService.saveFlashcard(flashcardData);
+        
+        // Update state with all flashcards
+        const updatedFlashcards = storageService.getAllFlashcards();
+        setFlashcards(updatedFlashcards);
+        
+        // Switch to review tab
+        setActiveTab("review");
+        
+        // Provide feedback
+        toast({
+          title: "Flashcard Saved",
+          description: "New flashcard added from browser extension",
+        });
+        
+        console.log("💾 Flashcard saved to storage");
+      }
+    };
+    
+    // Add the event listener
+    window.addEventListener('message', handleExtensionMessage);
+    console.log("👂 Extension message listener set up in React app");
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('message', handleExtensionMessage);
+    };
+  }, []); // No dependencies needed
+
   const handleCreateNew = () => {
-    setSelectedText("");
     setActiveTab("create");
   };
 
@@ -29,98 +81,27 @@ const Index = () => {
         </h1>
         <p className="text-muted-foreground max-w-2xl mx-auto">
           Create and review flashcards with gesture-based feedback.
-          This demo simulates a browser extension that lets you select text on any webpage.
         </p>
       </header>
-      
       <main className="flex-1 max-w-3xl mx-auto w-full">
-        {activeTab !== "select" && (
-          <TextSelector onTextSelected={handleTextSelected} />
-        )}
-        
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-3 mb-8">
-            <TabsTrigger value="review" className="flex items-center gap-2">
-              <BookText size={16} />
-              <span>Review Cards</span>
-            </TabsTrigger>
-            <TabsTrigger value="create" className="flex items-center gap-2">
-              <PlusCircle size={16} />
-              <span>Create Card</span>
-            </TabsTrigger>
-            <TabsTrigger value="info" className="flex items-center gap-2">
-              <BrainCircuit size={16} />
-              <span>How It Works</span>
-            </TabsTrigger>
+            {/* Your tab triggers here */}
           </TabsList>
-          
           <TabsContent value="review">
-            <FlashcardReview onCreateNew={handleCreateNew} />
-          </TabsContent>
-          
-          <TabsContent value="create">
-            <FlashcardCreator 
-              initialText={selectedText} 
-              onCardCreated={() => setActiveTab("review")} 
+            <FlashcardReview 
+              flashcards={flashcards}
+              onCreateNew={handleCreateNew}
             />
           </TabsContent>
-          
-          <TabsContent value="info">
-            <Card>
-              <CardHeader>
-                <CardTitle>About Flashcard Grabber</CardTitle>
-                <CardDescription>
-                  Understanding how the browser extension works
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <h3 className="text-lg font-medium">Text Selection</h3>
-                  <p className="text-muted-foreground">
-                    In the real extension, you can select any text on a webpage and right-click to create a flashcard.
-                    The selected text becomes the front of the card.
-                  </p>
-                </div>
-                
-                <div className="space-y-2">
-                  <h3 className="text-lg font-medium">Gesture Recognition</h3>
-                  <p className="text-muted-foreground">
-                    When reviewing cards, you can use hand gestures to indicate how well you knew the answer:
-                  </p>
-                  <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                    <li>Thumbs Up: Easy - you knew the answer well</li>
-                    <li>Flat Hand: Medium - you had to think about it</li>
-                    <li>Thumbs Down: Hard - you didn't know the answer</li>
-                  </ul>
-                  <p className="text-muted-foreground mt-2">
-                    For this demo version, you can use keyboard shortcuts (E, M, H) or the buttons to simulate gestures.
-                  </p>
-                </div>
-                
-                <div className="space-y-2">
-                  <h3 className="text-lg font-medium">Storage</h3>
-                  <p className="text-muted-foreground">
-                    In the real extension, flashcards would be stored using chrome.storage.local.
-                    This demo uses localStorage to simulate the same functionality.
-                  </p>
-                </div>
-                
-                <div className="space-y-2">
-                  <h3 className="text-lg font-medium">Future Features</h3>
-                  <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                    <li>Spaced repetition algorithm</li>
-                    <li>Export/import as JSON or CSV</li>
-                    <li>Improved gesture recognition with TensorFlow.js</li>
-                    <li>Tag-based filtering and organization</li>
-                    <li>Cloud sync across devices</li>
-                  </ul>
-                </div>
-              </CardContent>
-            </Card>
+          <TabsContent value="create">
+            <FlashcardCreator
+              onCardCreated={() => setActiveTab("review")}
+            />
           </TabsContent>
+          {/* Other tabs */}
         </Tabs>
       </main>
-      
       <footer className="mt-12 text-center text-sm text-muted-foreground">
         <p>© 2025 Flashcard Grabber • Browser Extension Demo</p>
       </footer>

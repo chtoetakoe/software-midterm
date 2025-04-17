@@ -1,3 +1,4 @@
+// In FlashcardReview.tsx
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,9 +12,13 @@ import { useToast } from "@/components/ui/use-toast";
 
 interface FlashcardReviewProps {
   onCreateNew: () => void;
+  flashcards?: Flashcard[]; // Add this line
 }
 
-export const FlashcardReview: React.FC<FlashcardReviewProps> = ({ onCreateNew }) => {
+export const FlashcardReview: React.FC<FlashcardReviewProps> = ({ 
+  onCreateNew,
+  flashcards: propFlashcards 
+}) => {
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showHint, setShowHint] = useState(false);
@@ -21,9 +26,16 @@ export const FlashcardReview: React.FC<FlashcardReviewProps> = ({ onCreateNew })
   const { toast } = useToast();
 
   useEffect(() => {
-    const storedCards = storageService.getAllFlashcards();
-    setFlashcards(storedCards);
-  }, []);
+    // If flashcards are provided via props, use those
+    if (propFlashcards && propFlashcards.length > 0) {
+      setFlashcards(propFlashcards);
+    } else {
+      // Otherwise load from storage as before
+      const storedCards = storageService.getAllFlashcards();
+      setFlashcards(storedCards);
+    }
+  }, [propFlashcards]); // Add depen
+
 
   const handleReview = (difficulty: FlashcardDifficulty) => {
     const updated = [...flashcards];
