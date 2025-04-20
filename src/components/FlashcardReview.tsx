@@ -8,15 +8,16 @@ import { Flashcard, FlashcardDifficulty } from "@/types/flashcard";
 import { storageService } from "@/services/storage-service";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { Hand, ThumbsUp, ThumbsDown } from "lucide-react";
 
 interface FlashcardReviewProps {
   onCreateNew: () => void;
-  flashcards?: Flashcard[]; 
+  flashcards?: Flashcard[];
 }
 
-export const FlashcardReview: React.FC<FlashcardReviewProps> = ({ 
+export const FlashcardReview: React.FC<FlashcardReviewProps> = ({
   onCreateNew,
-  flashcards: propFlashcards 
+  flashcards: propFlashcards
 }) => {
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -33,8 +34,7 @@ export const FlashcardReview: React.FC<FlashcardReviewProps> = ({
       const storedCards = storageService.getAllFlashcards();
       setFlashcards(storedCards);
     }
-  }, [propFlashcards]); // Add depen
-
+  }, [propFlashcards]);
 
   const handleReview = (difficulty: FlashcardDifficulty) => {
     const updated = [...flashcards];
@@ -75,8 +75,8 @@ export const FlashcardReview: React.FC<FlashcardReviewProps> = ({
       <TabsContent value="manual">
         <FlashcardView
           card={currentCard}
-          onReview={handleReview}
           showHint={showHint}
+          onReview={handleReview}
         />
         <div className="flex justify-between mt-4">
           <Button variant="ghost" onClick={() => setShowHint(!showHint)}>
@@ -102,17 +102,45 @@ export const FlashcardReview: React.FC<FlashcardReviewProps> = ({
       </TabsContent>
 
       <TabsContent value="gesture">
-        <GestureDetector
-         onGestureDetected={handleReview}
-         isActive={true} // or toggle this with state later if needed
-       />
-      <FlashcardView
-    card={currentCard}
-    onReview={handleReview}
-    showHint={showHint}
-  />
-</TabsContent>
-
+        <div className="space-y-4">
+          <div className="text-center mb-2 p-3 bg-muted rounded-md">
+            <p className="font-medium">Use hand gestures to rate this card:</p>
+            <div className="flex justify-center gap-6 mt-2">
+              <span className="flex flex-col items-center">
+                <ThumbsUp className="h-6 w-6 text-green-500" />
+                <span className="text-sm mt-1">Easy</span>
+              </span>
+              <span className="flex flex-col items-center">
+                <Hand className="h-6 w-6 text-yellow-500" />
+                <span className="text-sm mt-1">Medium</span>
+              </span>
+              <span className="flex flex-col items-center">
+                <ThumbsDown className="h-6 w-6 text-red-500" />
+                <span className="text-sm mt-1">Hard</span>
+              </span>
+            </div>
+          </div>
+          
+          <GestureDetector
+            onGestureDetected={handleReview}
+            isActive={reviewMode === "gesture"}
+          />
+          
+          <FlashcardView
+            card={currentCard}
+            showHint={showHint}
+            onReview={handleReview}
+          />
+          
+          <Button 
+            variant="ghost" 
+            onClick={() => setShowHint(!showHint)} 
+            className="w-full"
+          >
+            {showHint ? "Hide Hint" : "Show Hint"}
+          </Button>
+        </div>
+      </TabsContent>
     </Tabs>
   );
 };
