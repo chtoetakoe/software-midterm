@@ -1,9 +1,9 @@
 // In src/pages/Index.tsx
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FlashcardCreator } from "@/components/FlashcardCreator";
+
 import { FlashcardReview } from "@/components/FlashcardReview";
-import { BrainCircuit, BookText, PlusCircle } from "lucide-react";
+
 import { Flashcard } from "@/types/flashcard";
 import { storageService } from "@/services/storage-service";
 import { useToast } from "@/components/ui/use-toast";
@@ -25,7 +25,7 @@ const Index = () => {
       console.log("Message received:", event);
       
       if (event.data && event.data.type === "FROM_EXTENSION") {
-        console.log("🎯 React app received flashcard:", event.data.flashcard);
+        console.log(" React app received flashcard:", event.data.flashcard);
         
         // Transform the data to match your Flashcard type
         // The extension data might have createdAt as a string, so we convert it to Date
@@ -77,11 +77,9 @@ const Index = () => {
     <div className="min-h-screen flex flex-col bg-background py-8 px-4 sm:px-6">
       <header className="mb-8 text-center">
         <h1 className="text-3xl font-bold tracking-tight text-primary mb-2">
-          Flashcard Grabber
+          Flashcard
         </h1>
-        <p className="text-muted-foreground max-w-2xl mx-auto">
-          Create and review flashcards with gesture-based feedback.
-        </p>
+       
       </header>
       <main className="flex-1 max-w-3xl mx-auto w-full">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -94,17 +92,12 @@ const Index = () => {
               onCreateNew={handleCreateNew}
             />
           </TabsContent>
-          <TabsContent value="create">
-            <FlashcardCreator
-              onCardCreated={() => setActiveTab("review")}
-            />
-          </TabsContent>
+          
+        
           {/* Other tabs */}
         </Tabs>
       </main>
-      <footer className="mt-12 text-center text-sm text-muted-foreground">
-        <p>© 2025 Flashcard Grabber • Browser Extension Demo</p>
-      </footer>
+      
     </div>
   );
 };
