@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FlashcardView } from "./FlashcardView";
-import { GestureDetector } from "./GestureDetector";
+import { GestureRunner } from "@/gesture/GestureRunner";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Flashcard, FlashcardDifficulty } from "@/types/flashcard";
 import { storageService } from "@/services/storage-service";
@@ -121,10 +122,15 @@ export const FlashcardReview: React.FC<FlashcardReviewProps> = ({
             </div>
           </div>
           
-          <GestureDetector
-            onGestureDetected={handleReview}
-            isActive={reviewMode === "gesture"}
-          />
+          <GestureRunner
+  isActive={reviewMode === "gesture"}
+  onGesture={(gesture) => {
+    if (gesture === "thumbs_up") handleReview(FlashcardDifficulty.EASY);
+    if (gesture === "flat_hand") handleReview(FlashcardDifficulty.MEDIUM);
+    if (gesture === "thumbs_down") handleReview(FlashcardDifficulty.HARD);
+  }}
+/>
+
           
           <FlashcardView
             card={currentCard}
