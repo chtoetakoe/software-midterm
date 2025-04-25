@@ -1,8 +1,11 @@
 import { useEffect, useRef } from "react";
 import { initGestureRecognition } from "./gestureRecognition";
 
+
 interface Props {
   isActive: boolean;
+  
+
   onGesture: (gesture: "thumbs_up" | "thumbs_down" | "flat_hand") => void;
   detectorRef?: React.MutableRefObject<any>;
 }
@@ -11,6 +14,7 @@ export const GestureRunner: React.FC<Props> = ({ isActive, onGesture, detectorRe
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const internalDetectorRef = useRef<any>(null);
+  
 
   useEffect(() => {
     if (isActive && videoRef.current) {
@@ -25,7 +29,7 @@ export const GestureRunner: React.FC<Props> = ({ isActive, onGesture, detectorRe
       internalDetectorRef.current?.dispose?.();
     };
   }, [isActive]);
-
+    
   return (
     <div style={{ position: "relative", width: 640, height: 480 }}>
       <video
@@ -45,4 +49,6 @@ export const GestureRunner: React.FC<Props> = ({ isActive, onGesture, detectorRe
       />
     </div>
   );
+
+  
 };

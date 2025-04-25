@@ -125,6 +125,7 @@ export class GestureDetector {
           }
 
           if (this.callback) {
+            
             this.callback(gesture);
           }
         }
