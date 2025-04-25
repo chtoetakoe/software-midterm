@@ -4,25 +4,25 @@ import { initGestureRecognition } from "./gestureRecognition";
 interface Props {
   isActive: boolean;
   onGesture: (gesture: "thumbs_up" | "thumbs_down" | "flat_hand") => void;
+  detectorRef?: React.MutableRefObject<any>;
 }
 
-export const GestureRunner: React.FC<Props> = ({ isActive, onGesture }) => {
+export const GestureRunner: React.FC<Props> = ({ isActive, onGesture, detectorRef }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const detectorRef = useRef<any>(null);
+  const internalDetectorRef = useRef<any>(null);
 
   useEffect(() => {
     if (isActive && videoRef.current) {
       initGestureRecognition(videoRef.current, canvasRef.current!, onGesture).then((detector) => {
-        detectorRef.current = detector;
+        internalDetectorRef.current = detector;
+        if (detectorRef) detectorRef.current = detector;
       });
     }
 
     return () => {
-      if (detectorRef.current) {
-        detectorRef.current.stop();
-        detectorRef.current.dispose?.();
-      }
+      internalDetectorRef.current?.stop();
+      internalDetectorRef.current?.dispose?.();
     };
   }, [isActive]);
 

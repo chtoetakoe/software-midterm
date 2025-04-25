@@ -18,6 +18,9 @@ export class GestureDetector {
   private canvasElement: HTMLCanvasElement | null = null;
   private canvasCtx: CanvasRenderingContext2D | null = null;
 
+  private lastGesture: GestureType = 'unknown';
+  private lastGestureTime = 0;
+
   constructor(config: GestureDetectionConfig = {}) {
     this.config = {
       minConfidence: config.minConfidence ?? 0.7,
@@ -27,7 +30,7 @@ export class GestureDetector {
 
   public async initialize(
     videoElement: HTMLVideoElement,
-    canvasElement?: HTMLCanvasElement, 
+    canvasElement?: HTMLCanvasElement,
     callback?: GestureCallback
   ): Promise<boolean> {
     try {
@@ -39,7 +42,7 @@ export class GestureDetector {
         modelType: 'full',
         maxHands: this.config.maxHands,
       };
-      
+
       this.detector = await handPoseDetection.createDetector(model, detectorConfig);
       this.video = videoElement;
       this.callback = callback || null;
@@ -113,9 +116,12 @@ export class GestureDetector {
           if (hand.score && hand.score < this.config.minConfidence) continue;
 
           const gesture = this.recognizeGesture(hand);
+          this.lastGesture = gesture;
+          this.lastGestureTime = Date.now();
 
           if (this.canvasCtx && this.canvasElement) {
-            this.drawHand(hand, gesture);
+            this.drawHand(hand);
+            this.drawGestureLabel(gesture);
           }
 
           if (this.callback) {
@@ -123,7 +129,13 @@ export class GestureDetector {
           }
         }
       } else if (this.canvasCtx && this.canvasElement) {
-        this.canvasCtx.clearRect(0, 0, this.canvasElement.width, this.canvasElement.height);
+        const timeSinceLast = Date.now() - this.lastGestureTime;
+
+        if (timeSinceLast < 1000) {
+          this.drawGestureLabel(this.lastGesture);
+        } else {
+          this.canvasCtx.clearRect(0, 0, this.canvasElement.width, this.canvasElement.height);
+        }
       }
     } catch (error) {
       console.error('Error during hand detection:', error);
@@ -132,12 +144,11 @@ export class GestureDetector {
     requestAnimationFrame(() => this.detectFrame());
   }
 
-  private drawHand(hand: handPoseDetection.Hand, gesture: GestureType): void {
+  private drawHand(hand: handPoseDetection.Hand): void {
     if (!this.canvasCtx || !this.canvasElement || !hand.keypoints) return;
 
     const ctx = this.canvasCtx;
 
-    // 🔁 Mirror canvas to match mirrored video
     ctx.save();
     ctx.translate(this.canvasElement.width, 0);
     ctx.scale(-1, 1);
@@ -153,17 +164,7 @@ export class GestureDetector {
       [0, 5], [5, 9], [9, 13], [13, 17],
     ];
 
-    switch (gesture) {
-      case 'thumbs_up':
-        ctx.strokeStyle = '#4CAF50'; break;
-      case 'thumbs_down':
-        ctx.strokeStyle = '#F44336'; break;
-      case 'flat_hand':
-        ctx.strokeStyle = '#2196F3'; break;
-      default:
-        ctx.strokeStyle = '#9E9E9E';
-    }
-
+    ctx.strokeStyle = '#FF9800';
     ctx.lineWidth = 2;
 
     for (const [i, j] of fingerConnections) {
@@ -185,6 +186,18 @@ export class GestureDetector {
       ctx.stroke();
     }
 
+    ctx.restore();
+  }
+
+  private drawGestureLabel(gesture: GestureType): void {
+    if (!this.canvasCtx || !this.canvasElement) return;
+
+    const ctx = this.canvasCtx;
+
+    ctx.save();
+    ctx.translate(this.canvasElement.width, 0);
+    ctx.scale(-1, 1);
+
     ctx.fillStyle = 'white';
     ctx.strokeStyle = 'black';
     ctx.lineWidth = 1;
@@ -192,7 +205,7 @@ export class GestureDetector {
     ctx.fillText(gesture, 10, 30);
     ctx.strokeText(gesture, 10, 30);
 
-    ctx.restore(); // 🔚 Unflip canvas
+    ctx.restore();
   }
 
   private recognizeGesture(hand: handPoseDetection.Hand): GestureType {

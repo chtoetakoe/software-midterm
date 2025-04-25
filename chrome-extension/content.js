@@ -1,24 +1,33 @@
-// content.js
+// Track last sent flashcard ID to avoid duplicate sends
+let lastSentFlashcardId = null;
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "NEW_FLASHCARD") {
-    console.log("📥 content.js received flashcard:", message.flashcard);
-    
-    // Format the message exactly as expected by your React app
+    const incoming = message.flashcard;
+    console.log("📥 content.js received flashcard:", incoming);
+
+    // ✅ Prevent sending the same flashcard twice
+    if (incoming.id === lastSentFlashcardId) {
+      console.log("⚠️ Duplicate flashcard ignored:", incoming.id);
+      sendResponse({ status: "duplicate_ignored" });
+      return false;
+    }
+
+    lastSentFlashcardId = incoming.id;
+
+    // ✅ Post message to React app
     window.postMessage(
-      { 
-        type: "FROM_EXTENSION", 
-        flashcard: message.flashcard 
-      }, 
+      {
+        type: "FROM_EXTENSION",
+        flashcard: incoming
+      },
       "http://localhost:8080"
     );
-    
-    console.log("📤 Message posted to window");
-    
-    // Send response back to popup
+
+    console.log("📤 Flashcard posted to window");
     sendResponse({ status: "success" });
-    return true; // Keep the message channel open for the async response
+    return true;
   }
 });
 
-// Log to verify the content script is loaded
 console.log("🔌 Flashcard extension content script loaded");

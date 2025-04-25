@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FlashcardView } from "./FlashcardView";
@@ -25,22 +25,24 @@ export const FlashcardReview: React.FC<FlashcardReviewProps> = ({
   const [showHint, setShowHint] = useState(false);
   const [reviewMode, setReviewMode] = useState("manual");
   const { toast } = useToast();
+  const detectorRef = useRef<any>(null);
 
   useEffect(() => {
-    // If flashcards are provided via props, use those
+    console.log("Loading flashcards...");
+    if (flashcards.length > 0) return; // prevent stacking flashcards
+  
     if (propFlashcards && propFlashcards.length > 0) {
       setFlashcards(propFlashcards);
     } else {
-      // Otherwise load from storage as before
       const storedCards = storageService.getAllFlashcards();
       setFlashcards(storedCards);
     }
-  }, [propFlashcards]);
+  }, []);
+  
 
   const handleReview = (difficulty: FlashcardDifficulty) => {
     const updated = [...flashcards];
-    // Optionally save review state later
-    updated.splice(currentIndex, 1); // remove reviewed card
+    updated.splice(currentIndex, 1);
     setFlashcards(updated);
     setCurrentIndex((prev) => (prev >= updated.length ? 0 : prev));
     setShowHint(false);
@@ -86,14 +88,22 @@ export const FlashcardReview: React.FC<FlashcardReviewProps> = ({
           <div className="flex gap-2">
             <Button
               variant="outline"
-              onClick={() => setCurrentIndex((prev) => Math.max(prev - 1, 0))}
+              onClick={() => {
+                detectorRef.current?.stop();
+                setCurrentIndex((prev) => Math.max(prev - 1, 0));
+                setTimeout(() => detectorRef.current?.start(), 150);
+              }}
               disabled={currentIndex === 0}
             >
               <ChevronLeft size={16} />
             </Button>
             <Button
               variant="outline"
-              onClick={() => setCurrentIndex((prev) => Math.min(prev + 1, flashcards.length - 1))}
+              onClick={() => {
+                detectorRef.current?.stop();
+                setCurrentIndex((prev) => Math.min(prev + 1, flashcards.length - 1));
+                setTimeout(() => detectorRef.current?.start(), 150);
+              }}
               disabled={currentIndex === flashcards.length - 1}
             >
               <ChevronRight size={16} />
@@ -121,26 +131,26 @@ export const FlashcardReview: React.FC<FlashcardReviewProps> = ({
               </span>
             </div>
           </div>
-          
-          <GestureRunner
-  isActive={reviewMode === "gesture"}
-  onGesture={(gesture) => {
-    if (gesture === "thumbs_up") handleReview(FlashcardDifficulty.EASY);
-    if (gesture === "flat_hand") handleReview(FlashcardDifficulty.MEDIUM);
-    if (gesture === "thumbs_down") handleReview(FlashcardDifficulty.HARD);
-  }}
-/>
 
-          
+          <GestureRunner
+            isActive={reviewMode === "gesture"}
+            onGesture={(gesture) => {
+              if (gesture === "thumbs_up") handleReview(FlashcardDifficulty.EASY);
+              if (gesture === "flat_hand") handleReview(FlashcardDifficulty.MEDIUM);
+              if (gesture === "thumbs_down") handleReview(FlashcardDifficulty.HARD);
+            }}
+            detectorRef={detectorRef}
+          />
+
           <FlashcardView
             card={currentCard}
             showHint={showHint}
             onReview={handleReview}
           />
-          
-          <Button 
-            variant="ghost" 
-            onClick={() => setShowHint(!showHint)} 
+
+          <Button
+            variant="ghost"
+            onClick={() => setShowHint(!showHint)}
             className="w-full"
           >
             {showHint ? "Hide Hint" : "Show Hint"}
