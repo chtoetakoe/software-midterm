@@ -3,7 +3,7 @@ import {
   Tabs,
   TabsContent,
   TabsList,
-  TabsTrigger
+  TabsTrigger,
 } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,11 +11,17 @@ import { GestureRunner } from "@/gesture/GestureRunner";
 import { FlashcardView } from "./FlashcardView";
 import {
   Flashcard,
-  FlashcardDifficulty
+  FlashcardDifficulty,
 } from "@/types/flashcard";
 import { storageService } from "@/services/storage-service";
 import { useToast } from "@/components/ui/use-toast";
-import { ChevronLeft, ChevronRight, Hand, ThumbsUp, ThumbsDown } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Hand,
+  ThumbsUp,
+  ThumbsDown,
+} from "lucide-react";
 
 interface Props {
   onCreateNew: () => void;
@@ -24,13 +30,12 @@ interface Props {
 
 export const FlashcardReview: React.FC<Props> = ({
   onCreateNew,
-  flashcards: propCards
+  flashcards: propCards,
 }) => {
   const [cards, setCards] = useState<Flashcard[]>([]);
   const [idx, setIdx] = useState(0);
   const [reviewMode, setReviewMode] = useState<"manual" | "gesture">("manual");
   const [showHint, setShowHint] = useState(false);
-  const [cardFlipped, setCardFlipped] = useState(false);
   const [detectedGesture, setDetectedGesture] = useState<string | null>(null);
 
   const { toast } = useToast();
@@ -38,6 +43,8 @@ export const FlashcardReview: React.FC<Props> = ({
   const detectorRef = useRef<any>(null);
   const lastGestureRef = useRef<string | null>(null);
   const gestureCooldownRef = useRef(false);
+  const cardFlippedRef = useRef(false);
+  const hasReviewedThisCardRef = useRef(false); // ✅ Prevent multiple reviews
 
   useEffect(() => {
     const loadedCards = propCards ?? storageService.getAllFlashcards();
@@ -47,21 +54,36 @@ export const FlashcardReview: React.FC<Props> = ({
   const currentCard = cards[idx];
 
   const handleReview = (d: FlashcardDifficulty) => {
+    const current = cards[idx];
+    if (!current || !current.id || hasReviewedThisCardRef.current) return;
+  
+    hasReviewedThisCardRef.current = true;
+  
+    storageService.saveReview({
+      cardId: current.id,
+      difficulty: d,
+    });
+  
+    const updatedCards = [...cards];
+    updatedCards.splice(idx, 1);
+    setCards(updatedCards);
+  
     setTimeout(() => {
-      const updated = [...cards];
-      updated.splice(idx, 1);
-      setCards(updated);
-      setIdx((prev) => (prev >= updated.length ? 0 : prev));
+      setIdx((prev) => Math.min(prev, updatedCards.length - 1)); // ✅ Final safe index move
+      cardFlippedRef.current = false;
+      hasReviewedThisCardRef.current = false;
       setShowHint(false);
-      setCardFlipped(false);
       setDetectedGesture(null);
       lastGestureRef.current = null;
       gestureCooldownRef.current = false;
+  
       toast({ title: "Card Reviewed", description: `Marked as ${d}` });
-    }, 1000); // Wait to show answer before switching
+    }, 1500);
   };
+  
 
-  const handleModeChange = (v: string) => setReviewMode(v as "manual" | "gesture");
+  const handleModeChange = (v: string) =>
+    setReviewMode(v as "manual" | "gesture");
 
   if (!currentCard) {
     return (
@@ -77,7 +99,11 @@ export const FlashcardReview: React.FC<Props> = ({
   }
 
   return (
-    <Tabs value={reviewMode} onValueChange={handleModeChange} className="w-full max-w-md mx-auto">
+    <Tabs
+      value={reviewMode}
+      onValueChange={handleModeChange}
+      className="w-full max-w-md mx-auto"
+    >
       <TabsList className="grid grid-cols-2 mb-4">
         <TabsTrigger value="manual">Manual</TabsTrigger>
         <TabsTrigger value="gesture">Gesture</TabsTrigger>
@@ -91,20 +117,20 @@ export const FlashcardReview: React.FC<Props> = ({
           interactionMode="manual"
         />
         <div className="flex justify-between mt-4">
-          <Button variant="ghost" onClick={() => setShowHint(h => !h)}>
+          <Button variant="ghost" onClick={() => setShowHint((h) => !h)}>
             {showHint ? "Hide Hint" : "Show Hint"}
           </Button>
           <div className="flex gap-2">
             <Button
               variant="outline"
-              onClick={() => setIdx(p => Math.max(p - 1, 0))}
+              onClick={() => setIdx((p) => Math.max(p - 1, 0))}
               disabled={idx === 0}
             >
               <ChevronLeft size={16} />
             </Button>
             <Button
               variant="outline"
-              onClick={() => setIdx(p => Math.min(p + 1, cards.length - 1))}
+              onClick={() => setIdx((p) => Math.min(p + 1, cards.length - 1))}
               disabled={idx === cards.length - 1}
             >
               <ChevronRight size={16} />
@@ -139,13 +165,20 @@ export const FlashcardReview: React.FC<Props> = ({
               detectorRef={detectorRef}
               onGesture={(g) => {
                 setDetectedGesture(g);
-                if (!cardFlipped || gestureCooldownRef.current || lastGestureRef.current === g) return;
+
+                if (
+                  !cardFlippedRef.current ||
+                  gestureCooldownRef.current ||
+                  lastGestureRef.current === g ||
+                  hasReviewedThisCardRef.current
+                ) return;
+
                 lastGestureRef.current = g;
                 gestureCooldownRef.current = true;
 
                 if (g === "thumbs_up") handleReview(FlashcardDifficulty.EASY);
-                if (g === "flat_hand") handleReview(FlashcardDifficulty.MEDIUM);
-                if (g === "thumbs_down") handleReview(FlashcardDifficulty.HARD);
+                else if (g === "flat_hand") handleReview(FlashcardDifficulty.MEDIUM);
+                else if (g === "thumbs_down") handleReview(FlashcardDifficulty.HARD);
 
                 setTimeout(() => {
                   gestureCooldownRef.current = false;
@@ -167,7 +200,9 @@ export const FlashcardReview: React.FC<Props> = ({
             showHint={showHint}
             onReview={handleReview}
             acceptGestureOnlyWhenFlipped
-            onFlipped={setCardFlipped}
+            onFlipped={(flipped) => {
+              cardFlippedRef.current = flipped;
+            }}
             interactionMode="gesture"
           />
 

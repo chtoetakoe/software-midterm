@@ -35,9 +35,12 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
     setAnimating(true);
     const next = !flipped;
     setFlipped(next);
+    
+    // ✅ Call immediately so FlashcardReview.tsx gets updated in real-time
+    onFlipped?.(next);
+
     setTimeout(() => {
       setAnimating(false);
-      onFlipped?.(next);
     }, 400);
   };
 
