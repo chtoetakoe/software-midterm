@@ -37,6 +37,7 @@ export const FlashcardReview: React.FC<Props> = ({
   const [reviewMode, setReviewMode] = useState<"manual" | "gesture">("manual");
   const [showHint, setShowHint] = useState(false);
   const [detectedGesture, setDetectedGesture] = useState<string | null>(null);
+  const [isProcessingReview, setIsProcessingReview] = useState(false);
 
   const { toast } = useToast();
 
@@ -44,43 +45,62 @@ export const FlashcardReview: React.FC<Props> = ({
   const lastGestureRef = useRef<string | null>(null);
   const gestureCooldownRef = useRef(false);
   const cardFlippedRef = useRef(false);
-  const hasReviewedThisCardRef = useRef(false); // ✅ Prevent multiple reviews
+  const hasReviewedThisCardRef = useRef(false);
 
   useEffect(() => {
     const loadedCards = propCards ?? storageService.getAllFlashcards();
     setCards(loadedCards);
   }, [propCards]);
 
+  useEffect(() => {
+    console.log("📦 CARDS updated:", cards.map(c => c.front));
+    if (idx >= cards.length && cards.length > 0) {
+      console.log("🔁 Resetting index to 0");
+      setIdx(0);
+    }
+  }, [cards]);
+
   const currentCard = cards[idx];
+  console.log("📌 CURRENT CARD:", currentCard?.front, "at index", idx);
 
   const handleReview = (d: FlashcardDifficulty) => {
     const current = cards[idx];
-    if (!current || !current.id || hasReviewedThisCardRef.current) return;
-  
+    if (!current || !current.id || hasReviewedThisCardRef.current || isProcessingReview) return;
+
+    console.log("👉 REVIEWING:", current.front, d);
     hasReviewedThisCardRef.current = true;
-  
+    setIsProcessingReview(true);
+
+    // Save review first
     storageService.saveReview({
       cardId: current.id,
       difficulty: d,
     });
-  
-    const updatedCards = [...cards];
-    updatedCards.splice(idx, 1);
-    setCards(updatedCards);
-  
+
+    // Show toast to acknowledge the review
+    toast({ 
+      title: "Card Reviewed", 
+      description: `Marked as ${d}` 
+    });
+
+    // Delay removing the card to allow user to see the gesture feedback
     setTimeout(() => {
-      setIdx((prev) => Math.min(prev, updatedCards.length - 1)); // ✅ Final safe index move
+      console.log("👉 Removing card with ID:", current.id);
+      
+      // Remove the current card
+      const updatedCards = cards.filter((_, i) => i !== idx);
+      setCards(updatedCards);
+      
+      // Reset all state flags
       cardFlippedRef.current = false;
       hasReviewedThisCardRef.current = false;
       setShowHint(false);
       setDetectedGesture(null);
       lastGestureRef.current = null;
       gestureCooldownRef.current = false;
-  
-      toast({ title: "Card Reviewed", description: `Marked as ${d}` });
-    }, 1500);
+      setIsProcessingReview(false);
+    }, 1500);  // Longer delay (1.5 seconds) before removing card
   };
-  
 
   const handleModeChange = (v: string) =>
     setReviewMode(v as "manual" | "gesture");
@@ -111,6 +131,7 @@ export const FlashcardReview: React.FC<Props> = ({
 
       <TabsContent value="manual">
         <FlashcardView
+          key={currentCard.id}
           card={currentCard}
           showHint={showHint}
           onReview={handleReview}
@@ -161,7 +182,7 @@ export const FlashcardReview: React.FC<Props> = ({
 
           <div className="relative">
             <GestureRunner
-              isActive={reviewMode === "gesture"}
+              isActive={reviewMode === "gesture"} // Keep camera active at all times in gesture mode
               detectorRef={detectorRef}
               onGesture={(g) => {
                 setDetectedGesture(g);
@@ -170,7 +191,8 @@ export const FlashcardReview: React.FC<Props> = ({
                   !cardFlippedRef.current ||
                   gestureCooldownRef.current ||
                   lastGestureRef.current === g ||
-                  hasReviewedThisCardRef.current
+                  hasReviewedThisCardRef.current ||
+                  isProcessingReview  // Still check processing to avoid multiple reviews
                 ) return;
 
                 lastGestureRef.current = g;
@@ -196,11 +218,13 @@ export const FlashcardReview: React.FC<Props> = ({
           </div>
 
           <FlashcardView
+            key={currentCard.id}
             card={currentCard}
             showHint={showHint}
             onReview={handleReview}
             acceptGestureOnlyWhenFlipped
             onFlipped={(flipped) => {
+              console.log("🔄 onFlipped triggered:", flipped);
               cardFlippedRef.current = flipped;
             }}
             interactionMode="gesture"
@@ -210,14 +234,14 @@ export const FlashcardReview: React.FC<Props> = ({
             <Button
               variant="outline"
               onClick={() => setIdx((p) => Math.max(p - 1, 0))}
-              disabled={idx === 0}
+              disabled={idx === 0 || isProcessingReview}
             >
               <ChevronLeft size={16} />
             </Button>
             <Button
               variant="outline"
               onClick={() => setIdx((p) => Math.min(p + 1, cards.length - 1))}
-              disabled={idx === cards.length - 1}
+              disabled={idx === cards.length - 1 || isProcessingReview}
             >
               <ChevronRight size={16} />
             </Button>
