@@ -103,33 +103,8 @@ class StorageService {
       }));
   }
   
-  // Add some sample cards for demo purposes
-  populateSampleCards(): void {
-    if (this.getAllFlashcards().length === 0) {
-      const sampleCards = [
-        {
-          front: "What is the capital of France?",
-          back: "Paris",
-          hint: "City of Light",
-          tags: ["geography", "europe"]
-        },
-        {
-          front: "Who wrote 'To Kill a Mockingbird'?",
-          back: "Harper Lee",
-          hint: "Published in 1960",
-          tags: ["literature", "american"]
-        },
-        {
-          front: "What is the main function of CSS in web development?",
-          back: "To style and layout web pages",
-          hint: "Cascading Style Sheets",
-          tags: ["programming", "web"]
-        }
-      ];
-      
-      sampleCards.forEach(card => this.saveFlashcard(card));
-    }
-  }
+
+    
 }
 
 export const storageService = new StorageService();
