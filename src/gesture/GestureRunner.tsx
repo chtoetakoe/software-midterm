@@ -1,3 +1,22 @@
+/**
+ * GestureRunner.tsx
+ * 
+ * This component shows the webcam feed and listens for hand gestures in real-time.
+ * 
+ * What it does:
+ * - Starts the webcam when `isActive` is true
+ * - Detects hand gestures using TensorFlow and MediaPipe
+ * - Calls the `onGesture()` callback when a gesture is found
+ * 
+ * Gestures it can detect:
+ * - "thumbs_up"
+ * - "thumbs_down"
+ * - "flat_hand"
+ * 
+ * Used in: FlashcardReview.tsx (gesture mode)
+ */
+
+
 import React, { useEffect, useRef } from "react";
 import { initGestureRecognition } from "./gestureRecognition";
 
@@ -55,15 +74,15 @@ export const GestureRunner: React.FC<Props> = ({
     if (!videoEl || !canvasEl) return;
 
     const handleLoaded = () => {
-      const vw = videoEl.videoWidth;   // native
+      const vw = videoEl.videoWidth;   
       const vh = videoEl.videoHeight;
       if (!vw || !vh) return;
 
-      const sx = width  / vw;          // display / native
+      const sx = width  / vw;          
       const sy = height / vh;
 
       const ctx = canvasEl.getContext("2d")!;
-      ctx.setTransform(sx, 0, 0, sy, 0, 0); // future draws auto-scaled
+      ctx.setTransform(sx, 0, 0, sy, 0, 0); 
     };
 
     videoEl.addEventListener("loadedmetadata", handleLoaded);
@@ -80,7 +99,7 @@ export const GestureRunner: React.FC<Props> = ({
         width={width}
         height={height}
         style={{
-          transform: "scaleX(-1)",     // mirror for selfie view
+          transform: "scaleX(-1)",     
           position: "absolute",
           top: 0,
           left: 0,

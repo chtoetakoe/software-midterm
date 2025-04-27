@@ -1,3 +1,9 @@
+/**
+ * Specification:
+ * On popup load, fetches the selected text and pre-fills the back of the flashcard.
+ * When the form is submitted, creates a flashcard object and sends it to the React app via content script.
+ */
+
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("flashcard-form");
   const backInput = document.getElementById("back");
@@ -30,13 +36,13 @@ document.addEventListener("DOMContentLoaded", () => {
       const targetTab = tabs.find(tab => tab.url && tab.url.startsWith("http://localhost:8080"));
 
       if (!targetTab?.id) {
-        alert("❌ Could not find an open tab for http://localhost:8080. Please open your React app.");
+        alert(" Could not find an open tab for http://localhost:8080. Please open your React app.");
         return;
       }
 
       console.log("⚡️Injecting content script to tab:", targetTab.id);
 
-      // Make sure content.js is injected before sending the message
+      
       chrome.scripting.executeScript(
         {
           target: { tabId: targetTab.id },
@@ -53,7 +59,7 @@ document.addEventListener("DOMContentLoaded", () => {
               if (chrome.runtime.lastError) {
                 console.error("Error sending message:", chrome.runtime.lastError.message);
               } else {
-                console.log("✅ Flashcard sent successfully.");
+                console.log(" Flashcard sent successfully.");
               }
               window.close();
             }

@@ -1,7 +1,26 @@
+/**
+ * gestureDetection.ts
+ * 
+ * This file contains the logic to classify a detected hand
+ * into one of the gestures:
+ * - "thumbs_up"
+ * - "thumbs_down"
+ * - "flat_hand"
+ * - "unknown"
+ * 
+ * It uses the hand landmarks (positions of fingers) to decide
+ * which gesture is being made.
+ * 
+ * Used by: gestureRecognition.ts
+ */
+
+
 import * as tf from '@tensorflow/tfjs';
 import * as handPoseDetection from '@tensorflow-models/hand-pose-detection';
 
+// List of gesture types the app recognizes
 export type GestureType = 'thumbs_up' | 'thumbs_down' | 'flat_hand' | 'unknown';
+
 export type GestureCallback = (gesture: GestureType) => void;
 
 export interface GestureDetectionConfig {
@@ -209,7 +228,7 @@ export class GestureDetector {
     ctx.restore();
   }
 
-  private recognizeGesture(hand: handPoseDetection.Hand): GestureType {
+  public recognizeGesture(hand: handPoseDetection.Hand): GestureType {
     if (!hand.keypoints || hand.keypoints.length < 21) return 'unknown';
 
     const thumb = { base: hand.keypoints[1], tip: hand.keypoints[4] };
@@ -247,3 +266,4 @@ export class GestureDetector {
     return 'unknown';
   }
 }
+

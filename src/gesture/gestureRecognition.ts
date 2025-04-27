@@ -1,7 +1,19 @@
-
-import { GestureDetector, GestureType, GestureCallback } from './gestureDetection';
-
 /**
+ * gestureRecognition.ts
+ * 
+ * This file sets up the actual gesture detection using:
+ * - TensorFlow.js
+ * - MediaPipe Hands
+ * 
+ * It watches the webcam feed, detects hand landmarks,
+ * and figures out what gesture is being shown (like thumbs up).
+ * 
+ * It also draws a hand skeleton on a canvas for visualization.
+ * 
+ * Called by: GestureRunner.tsx
+ */
+
+ /** 
  * Initialize gesture recognition with a webcam stream
  * 
  * @param videoElement - The video element to use for webcam input
@@ -10,6 +22,9 @@ import { GestureDetector, GestureType, GestureCallback } from './gestureDetectio
  * @param options - Configuration options
  * @returns A promise that resolves to the GestureDetector instance or null on failure
  */
+
+import { GestureDetector, GestureType, GestureCallback } from './gestureDetection';
+
 export async function initGestureRecognition(
   videoElement: HTMLVideoElement,
   canvasElement?: HTMLCanvasElement,
@@ -71,4 +86,7 @@ export function createMediaElements(
   container.appendChild(canvas);
   
   return { video, canvas };
+
+  
 }
+

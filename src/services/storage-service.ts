@@ -1,8 +1,37 @@
+/**
+ * storage-service.ts
+ *
+ * This service manages reading and writing flashcards and reviews from localStorage.
+ *
+ * AF (Abstraction Function):
+ *   - Represents a persistent collection of flashcards and review logs stored as JSON.
+ *   - Allows saving, updating, and deleting cards; saving and retrieving reviews.
+ *
+ * RI (Representation Invariant):
+ *   - Every flashcard has a non-empty front and an id
+ *   - Tags must be an array of strings
+ *   - Review cardId must refer to an existing card
+ *
+ * SRE (Example):
+ *   Flashcard: {
+ *     id: "abc123",
+ *     front: "What is AI?",
+ *     back: "Artificial Intelligence",
+ *     hint: "Think machines",
+ *     tags: ["CS"],
+ *     createdAt: "2024-04-01T00:00:00Z"
+ *   }
+ *   Review: {
+ *     cardId: "abc123",
+ *     difficulty: "EASY",
+ *     reviewedAt: "2024-04-02T12:00:00Z"
+ *   }
+ */
 
 import { Flashcard, FlashcardDifficulty, FlashcardReview } from "../types/flashcard";
 
 // In a real extension, this would use chrome.storage.local
-// For this demo, we'll use localStorage
+// For this we'll use localStorage
 class StorageService {
   private readonly STORAGE_KEY = "flashcard-grabber-cards";
   private readonly REVIEWS_KEY = "flashcard-grabber-reviews";

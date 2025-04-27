@@ -1,3 +1,21 @@
+/**
+ * Specification:
+ * This component displays a single flashcard, supporting manual review or gesture-controlled flow.
+ * 
+ * Props:
+ * - `card`: the flashcard to show
+ * - `onReview(difficulty)`: callback triggered when user scores the card
+ * - `showHint`: whether to show the hint section
+ * - `acceptGestureOnlyWhenFlipped`: if true, disables gesture scoring until card is flipped
+ * - `onFlipped(flipped)`: reports flipping state
+ * - `interactionMode`: "manual" or "gesture"
+ * 
+ * Features:
+ * - Front shows question; back shows answer and tags.
+ * - User clicks card to flip it.
+ * - Buttons are shown in manual mode for scoring.
+ */
+
 import React, { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,15 +23,16 @@ import { Flashcard as FlashcardType, FlashcardDifficulty } from "@/types/flashca
 import { BadgeCheck, X, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// Props this component expects
 interface FlashcardViewProps {
-  card: FlashcardType;
-  onReview: (difficulty: FlashcardDifficulty) => void;
-  showHint?: boolean;
-  acceptGestureOnlyWhenFlipped?: boolean;
-  onFlipped?: (flipped: boolean) => void;
-  interactionMode?: "manual" | "gesture";
-}
-
+  card: FlashcardType;  // the flashcard to display
+  onReview: (difficulty: FlashcardDifficulty) => void; // when user rates the card
+  showHint?: boolean;   // should hint be shown?
+  acceptGestureOnlyWhenFlipped?: boolean; // in gesture mode, must flip first?
+  onFlipped?: (flipped: boolean) => void;  // callback when card is flipped
+  interactionMode?: "manual" | "gesture"; // manual buttons vs gesture mode
+} 
+// FlashcardView displays one card — front shows question, back shows answer.
 export const FlashcardView: React.FC<FlashcardViewProps> = ({
   card,
   onReview,
@@ -22,14 +41,16 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
   onFlipped,
   interactionMode = "manual",
 }) => {
-  const [flipped, setFlipped] = useState(false);
-  const [animating, setAnimating] = useState(false);
-
+  const [flipped, setFlipped] = useState(false); // is card flipped?
+  const [animating, setAnimating] = useState(false); // animation delay
+  
+  // Reset flip state whenever we get a new card
   useEffect(() => {
     setFlipped(false);
     onFlipped?.(false);
-  }, [card.id, interactionMode]); // or optionally: [card.id, idx, interactionMode]
+  }, [card.id, interactionMode]); 
   
+  // When user clicks the card, flip it (with delay to avoid spam clicks)
   const handleFlip = () => {
     if (animating) return;
     setAnimating(true);
@@ -37,16 +58,18 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
     setFlipped(next);
     
     
-    onFlipped?.(next);
+    onFlipped?.(next); // notify parent
 
     setTimeout(() => {
       setAnimating(false);
     }, 400);
   };
-
+    // When the user clicks Easy/Medium/Hard or when a gesture happens
   const handleReview = (difficulty: FlashcardDifficulty) => {
+    
+    // If gesture mode requires flipped card, do nothing until flipped
     if (acceptGestureOnlyWhenFlipped && !flipped) return;
-    if (!card) return; // add this safety
+    if (!card) return; 
     onReview(difficulty);
   };
   

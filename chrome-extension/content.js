@@ -1,4 +1,10 @@
-// content.js  ──────────────────────────────────────────────────────────────
+/**
+ * Specification:
+ * Listens for messages from popup.js.
+ * Posts a NEW_FLASHCARD message to the React app via window.postMessage,
+ * avoiding duplicates based on ID.
+ */
+
 if (!window.__flashcardContentLoaded) {
   window.__flashcardContentLoaded = true;   // mark as loaded
 
@@ -8,11 +14,11 @@ if (!window.__flashcardContentLoaded) {
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === "NEW_FLASHCARD") {
       const incoming = message.flashcard;
-      console.log("📥 content.js received flashcard:", incoming);
+      console.log("content.js received flashcard:", incoming);
 
       // Prevent sending the same flashcard twice
       if (incoming.id === lastSentFlashcardId) {
-        console.log("⚠️ Duplicate flashcard ignored:", incoming.id);
+        console.log("Duplicate flashcard ignored:", incoming.id);
         sendResponse({ status: "duplicate_ignored" });
         return false;
       }
@@ -25,11 +31,11 @@ if (!window.__flashcardContentLoaded) {
         "http://localhost:8080"
       );
 
-      console.log("📤 Flashcard posted to window");
+      console.log("Flashcard posted to window");
       sendResponse({ status: "success" });
       return true;
     }
   });
 
-  console.log("🔌 Flashcard extension content script loaded");
+  console.log(" Flashcard extension content script loaded");
 }

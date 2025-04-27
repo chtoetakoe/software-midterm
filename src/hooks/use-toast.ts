@@ -1,3 +1,22 @@
+/**
+ * use-toast.ts
+ *
+ * A custom hook for showing toast (popup) notifications in the app.
+ *
+ * Features:
+ * - Show toast messages like "Card reviewed"
+ * - Only allows one toast at a time (TOAST_LIMIT = 1)
+ * - Toasts automatically disappear after a delay
+ * - Can dismiss or update toasts programmatically
+ *
+ * How it works:
+ * - Uses an in-memory reducer to track toast state
+ * - Supports actions: ADD, UPDATE, DISMISS, REMOVE
+ * - Provides `useToast()` for components and `toast({...})` for quick access
+ *
+ * Used in: FlashcardReview.tsx, gesture handlers, or anywhere you want feedback
+ */
+
 import * as React from "react"
 
 import type {

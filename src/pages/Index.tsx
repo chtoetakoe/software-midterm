@@ -1,3 +1,19 @@
+/**
+ * Index.tsx
+ * 
+ * This is the main page of the app. It does three things:
+ * 
+ * 1. Loads flashcards from local storage when the app starts.
+ * 2. Listens for messages sent by the Chrome Extension (via window.postMessage).
+ * 3. Renders the <FlashcardReview> component to let users review their flashcards.
+ * 
+ * If a new flashcard comes from the extension:
+ * - It checks for duplicates
+ * - Saves the new flashcard
+ * - Shows a toast message: "Flashcard Saved"
+ */
+
+
 import React, { useState, useEffect } from "react";
 import { FlashcardReview } from "@/components/FlashcardReview";
 import { Flashcard } from "@/types/flashcard";
@@ -58,7 +74,7 @@ const Index = () => {
       <main className="flex-1 max-w-3xl mx-auto w-full">
         <FlashcardReview
           flashcards={flashcards}
-          onCreateNew={() => null} // unused now
+          onCreateNew={() => null} 
         />
       </main>
     </div>
