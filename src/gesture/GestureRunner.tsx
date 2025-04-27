@@ -1,33 +1,74 @@
-import { useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { initGestureRecognition } from "./gestureRecognition";
+
+type Gesture = "thumbs_up" | "thumbs_down" | "flat_hand";
 
 interface Props {
   isActive: boolean;
-  onGesture: (g: "thumbs_up" | "thumbs_down" | "flat_hand") => void;
+  onGesture: (g: Gesture) => void;
   detectorRef?: React.MutableRefObject<any>;
-  width?: number;   // NEW
-  height?: number;  // NEW
+  width?: number;   // display width  (default 640)
+  height?: number;  // display height (default 420)
 }
 
 export const GestureRunner: React.FC<Props> = ({
-  isActive, onGesture, detectorRef, width = 640, height = 420,
+  isActive,
+  onGesture,
+  detectorRef,
+  width = 640,
+  height = 420,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const internalDetectorRef = useRef<any>(null);
+  const detectorInternalRef = useRef<any>(null);
 
+  /* --- keep a stable callback so detector isn't restarted every re-render --- */
+  const cbRef = useRef(onGesture);
   useEffect(() => {
-    if (isActive && videoRef.current) {
-      initGestureRecognition(videoRef.current, canvasRef.current!, onGesture).then(det => {
-        internalDetectorRef.current = det;
-        if (detectorRef) detectorRef.current = det;
-      });
-    }
+    cbRef.current = onGesture;
+  }, [onGesture]);
+
+  /* --- start / stop detector (runs only when isActive toggles) --- */
+  useEffect(() => {
+    if (!isActive || !videoRef.current || !canvasRef.current) return;
+
+    initGestureRecognition(
+      videoRef.current,
+      canvasRef.current,
+      /* wrapper forwards to latest callback without re-init: */
+      (g: Gesture) => cbRef.current(g),
+    ).then(det => {
+      detectorInternalRef.current = det;
+      if (detectorRef) detectorRef.current = det;
+    });
+
     return () => {
-      internalDetectorRef.current?.stop();
-      internalDetectorRef.current?.dispose?.();
+      detectorInternalRef.current?.stop?.();
+      detectorInternalRef.current?.dispose?.();
     };
-  }, [isActive]);
+  }, [isActive]);               // ← only depends on isActive now
+
+  /* --- once webcam knows its native resolution, scale canvas overlay --- */
+  useEffect(() => {
+    const videoEl = videoRef.current;
+    const canvasEl = canvasRef.current;
+    if (!videoEl || !canvasEl) return;
+
+    const handleLoaded = () => {
+      const vw = videoEl.videoWidth;   // native
+      const vh = videoEl.videoHeight;
+      if (!vw || !vh) return;
+
+      const sx = width  / vw;          // display / native
+      const sy = height / vh;
+
+      const ctx = canvasEl.getContext("2d")!;
+      ctx.setTransform(sx, 0, 0, sy, 0, 0); // future draws auto-scaled
+    };
+
+    videoEl.addEventListener("loadedmetadata", handleLoaded);
+    return () => videoEl.removeEventListener("loadedmetadata", handleLoaded);
+  }, [width, height]);
 
   return (
     <div style={{ position: "relative", width, height }}>
@@ -38,8 +79,14 @@ export const GestureRunner: React.FC<Props> = ({
         playsInline
         width={width}
         height={height}
-        style={{ transform: "scaleX(-1)", position: "absolute", top: 0, left: 0 }}
+        style={{
+          transform: "scaleX(-1)",     // mirror for selfie view
+          position: "absolute",
+          top: 0,
+          left: 0,
+        }}
       />
+
       <canvas
         ref={canvasRef}
         width={width}
