@@ -28,15 +28,15 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
   useEffect(() => {
     setFlipped(false);
     onFlipped?.(false);
-  }, [card]);
-
+  }, [card.id, interactionMode]); // or optionally: [card.id, idx, interactionMode]
+  
   const handleFlip = () => {
     if (animating) return;
     setAnimating(true);
     const next = !flipped;
     setFlipped(next);
     
-    // ✅ Call immediately so FlashcardReview.tsx gets updated in real-time
+    
     onFlipped?.(next);
 
     setTimeout(() => {
@@ -46,8 +46,10 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
 
   const handleReview = (difficulty: FlashcardDifficulty) => {
     if (acceptGestureOnlyWhenFlipped && !flipped) return;
+    if (!card) return; // add this safety
     onReview(difficulty);
   };
+  
 
   return (
     <div className="w-full max-w-md mx-auto">
