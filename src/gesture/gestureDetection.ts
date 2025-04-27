@@ -266,4 +266,8 @@ export class GestureDetector {
     return 'unknown';
   }
 }
+// allow tests to access the internal gesture logic
+export const _testUtils = {
+  recognizeGesture: (hand: any) => new GestureDetector({}).recognizeGesture(hand as any)
+};
 
