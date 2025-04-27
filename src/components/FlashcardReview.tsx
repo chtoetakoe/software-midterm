@@ -1,45 +1,53 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Tabs, TabsContent, TabsList, TabsTrigger,
+} from "@/components/ui/tabs";
+import {
+  Card, CardContent, CardHeader, CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { GestureRunner } from "@/gesture/GestureRunner";
 import { FlashcardView } from "./FlashcardView";
 import { Flashcard, FlashcardDifficulty } from "@/types/flashcard";
 import { storageService } from "@/services/storage-service";
 import { useToast } from "@/components/ui/use-toast";
-import { ChevronLeft, ChevronRight, Hand, ThumbsUp, ThumbsDown } from "lucide-react";
+import {
+  ChevronLeft, ChevronRight, Lightbulb,
+  ThumbsUp, ThumbsDown, Hand,
+} from "lucide-react";
 
-interface Props {
-  onCreateNew: () => void;
-  flashcards?: Flashcard[];
-}
+/* identical webcam & card size (desktop) */
+const CAM_W = 640;
+const CAM_H = 420;
+
+interface Props { onCreateNew: () => void; flashcards?: Flashcard[] }
 
 export const FlashcardReview: React.FC<Props> = ({
-  onCreateNew,
-  flashcards: propCards,
+  onCreateNew, flashcards: propCards,
 }) => {
-  /* ───────────────────────────────── state & refs ─────────────────────────── */
-  const [cards, setCards]   = useState<Flashcard[]>([]);
-  const [idx,   setIdx]     = useState(0);
-  const [cardKey, setCardKey] = useState(0);        // forces FlashcardView remount
+  /* ───── state & refs ───── */
+  const [cards, setCards] = useState<Flashcard[]>([]);
+  const [idx, setIdx] = useState(0);
+  const [cardKey, setCardKey] = useState(0);
+  const [mode, setMode] = useState<"manual" | "gesture">("gesture");
   const [showHint, setShowHint] = useState(false);
   const [gestureLabel, setGestureLabel] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const { toast } = useToast();
 
-  const idxRef              = useRef(0);            // live index for timeout
-  const cardFlippedRef       = useRef(false);
-  const gestureCooldownRef   = useRef(false);
-  const lastGestureRef       = useRef<string | null>(null);
-  const reviewedLockRef      = useRef(false);
+  const idxRef = useRef(0);
+  const flippedRef = useRef(false);
+  const reviewedLockRef = useRef(false);
+  const cooldownRef = useRef(false);
+  const lastGestureRef = useRef<string | null>(null);
 
-  /* ─────────────────────────────── load cards once ────────────────────────── */
+  /* load cards */
   useEffect(() => {
-    const loaded = propCards ?? storageService.getAllFlashcards();
-    setCards(loaded);
+    setCards(propCards ?? storageService.getAllFlashcards());
   }, [propCards]);
 
-  /* keep idx valid and mirror into idxRef                                      */
+  /* keep index valid */
   useEffect(() => {
     idxRef.current = idx;
     if (idx >= cards.length && cards.length > 0) setIdx(0);
@@ -47,38 +55,36 @@ export const FlashcardReview: React.FC<Props> = ({
 
   const currentCard = cards[idx];
 
-  /* ─────────────────────────────── review logic ───────────────────────────── */
-  const handleReview = (difficulty: FlashcardDifficulty) => {
+  /* review handler */
+  const commitReview = (d: FlashcardDifficulty) => {
     if (!currentCard || busy || reviewedLockRef.current) return;
 
     reviewedLockRef.current = true;
     setBusy(true);
-
-    storageService.saveReview({ cardId: currentCard.id, difficulty });
-    toast({ title: "Card Reviewed", description: `Marked as ${difficulty}` });
+    storageService.saveReview({ cardId: currentCard.id, difficulty: d });
+    toast({ title: "Card Reviewed", description: `Marked as ${d}` });
 
     setTimeout(() => {
-      /* remove the card using the latest index ref                              */
       setCards(prev => {
         const updated = prev.filter((_, i) => i !== idxRef.current);
-        /* compute next index after removal                                      */
-        setIdx(i => (i >= updated.length ? Math.max(0, updated.length - 1) : i));
+        setIdx(i =>
+          i >= updated.length ? Math.max(0, updated.length - 1) : i,
+        );
         return updated;
       });
 
-      setCardKey(k => k + 1);              // force FlashcardView refresh
-      /* reset gesture locks & UI                                               */
-      cardFlippedRef.current  = false;
-      gestureCooldownRef.current = false;
-      lastGestureRef.current  = null;
+      setCardKey(k => k + 1);
+      flippedRef.current = false;
       reviewedLockRef.current = false;
+      cooldownRef.current = false;
+      lastGestureRef.current = null;
       setGestureLabel(null);
       setShowHint(false);
       setBusy(false);
-    }, 350);                               // small UX delay
+    }, 350);
   };
 
-  /* ───────────────────────────── empty-deck view ───────────────────────────── */
+  /* empty deck */
   if (!currentCard) {
     return (
       <Card className="max-w-md mx-auto text-center p-6">
@@ -92,97 +98,134 @@ export const FlashcardReview: React.FC<Props> = ({
     );
   }
 
-  /* ─────────────────────────────────── UI ──────────────────────────────────── */
+  /* ───── UI ───── */
   return (
-    <div className="w-full max-w-md mx-auto flex flex-col items-center gap-6">
-      {/* Header with gesture hints */}
-      <div className="text-center w-full bg-muted rounded-md p-4">
-        <p className="font-medium mb-2">Flip the card, then show a gesture:</p>
-        <div className="flex justify-center gap-6">
-          <span className="flex flex-col items-center">
-            <ThumbsUp className="h-6 w-6 text-green-500" />
-            <span className="text-xs mt-1">Easy</span>
-          </span>
-          <span className="flex flex-col items-center">
-            <Hand className="h-6 w-6 text-yellow-500" />
-            <span className="text-xs mt-1">Medium</span>
-          </span>
-          <span className="flex flex-col items-center">
-            <ThumbsDown className="h-6 w-6 text-red-500" />
-            <span className="text-xs mt-1">Hard</span>
-          </span>
-        </div>
-      </div>
+    <Tabs
+      value={mode}
+      onValueChange={v => setMode(v as "manual" | "gesture")}
+      className="w-full max-w-md mx-auto"
+    >
+      <TabsList className="grid grid-cols-2 mb-4">
+        <TabsTrigger value="manual">Manual</TabsTrigger>
+        <TabsTrigger value="gesture">Gesture</TabsTrigger>
+      </TabsList>
 
-      {/* Webcam + detector (kept mounted, no key) */}
-      <div className="relative">
-        <GestureRunner
-          isActive
-          onGesture={(g) => {
-            setGestureLabel(g);
-
-            if (
-              !cardFlippedRef.current ||
-              gestureCooldownRef.current ||
-              lastGestureRef.current === g ||
-              reviewedLockRef.current ||
-              busy
-            ) {
-              return;
-            }
-
-            lastGestureRef.current = g;
-            gestureCooldownRef.current = true;
-
-            if (g === "thumbs_up")      handleReview(FlashcardDifficulty.EASY);
-            else if (g === "flat_hand") handleReview(FlashcardDifficulty.MEDIUM);
-            else if (g === "thumbs_down") handleReview(FlashcardDifficulty.HARD);
-
-            /* allow a new gesture after 1.5 s */
-            setTimeout(() => {
-              gestureCooldownRef.current = false;
-              lastGestureRef.current = null;
-            }, 1500);
-          }}
+      {/* Manual tab */}
+      <TabsContent value="manual">
+        <FlashcardView
+          key={`card-${cardKey}-manual`}
+          card={currentCard}
+          showHint={showHint}
+          onReview={commitReview}
+          interactionMode="manual"
         />
-
-        {gestureLabel && (
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-white/90 px-4 py-1 rounded shadow text-sm font-semibold">
-            {gestureLabel === "thumbs_up"   && "👍 EASY"}
-            {gestureLabel === "flat_hand"   && "✋ MEDIUM"}
-            {gestureLabel === "thumbs_down" && "👎 HARD"}
+        <div className="flex justify-between mt-4">
+          <Button variant="ghost" onClick={() => setShowHint(h => !h)}>
+            <Lightbulb className="mr-1 h-4 w-4" />
+            {showHint ? "Hide Hint" : "Show Hint"}
+          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" disabled={idx === 0 || busy}
+              onClick={() => setIdx(i => Math.max(i - 1, 0))}>
+              <ChevronLeft size={16} />
+            </Button>
+            <Button variant="outline"
+              disabled={idx === cards.length - 1 || busy}
+              onClick={() => setIdx(i => Math.min(i + 1, cards.length - 1))}>
+              <ChevronRight size={16} />
+            </Button>
           </div>
-        )}
-      </div>
+        </div>
+      </TabsContent>
 
-      {/* Flashcard view */}
-      <FlashcardView
-        key={`flashcard-${cardKey}`}
-        card={currentCard}
-        showHint={showHint}
-        onReview={handleReview}
-        acceptGestureOnlyWhenFlipped
-        onFlipped={(f) => (cardFlippedRef.current = f)}
-        interactionMode="gesture"
-      />
+      {/* Gesture tab */}
+      <TabsContent value="gesture">
+        <div className="flex flex-col items-center gap-6 w-full">
+          {/* Webcam */}
+          <div
+            className="relative rounded-lg shadow-lg overflow-hidden bg-black"
+            style={{ width: CAM_W, height: CAM_H }}
+          >
+            <GestureRunner
+              isActive
+              width={CAM_W}
+              height={CAM_H}
+              onGesture={g => {
+                setGestureLabel(g);
+                if (
+                  !flippedRef.current || cooldownRef.current ||
+                  lastGestureRef.current === g || reviewedLockRef.current || busy
+                ) return;
 
-      {/* Navigation buttons */}
-      <div className="flex justify-center gap-4">
-        <Button
-          variant="outline"
-          onClick={() => setIdx(i => Math.max(i - 1, 0))}
-          disabled={idx === 0 || busy}
-        >
-          <ChevronLeft size={16} />
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => setIdx(i => Math.min(i + 1, cards.length - 1))}
-          disabled={idx === cards.length - 1 || busy}
-        >
-          <ChevronRight size={16} />
-        </Button>
-      </div>
-    </div>
+                lastGestureRef.current = g;
+                cooldownRef.current = true;
+
+                if (g === "thumbs_up") commitReview(FlashcardDifficulty.EASY);
+                else if (g === "flat_hand") commitReview(FlashcardDifficulty.MEDIUM);
+                else if (g === "thumbs_down") commitReview(FlashcardDifficulty.HARD);
+
+                setTimeout(() => {
+                  cooldownRef.current = false;
+                  lastGestureRef.current = null;
+                }, 1500);
+              }}
+            />
+
+            {/* gesture label */}
+            {gestureLabel && (
+              <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-white/80 px-3 py-1 rounded text-sm font-semibold">
+                {gestureLabel === "thumbs_up" && "👍 EASY"}
+                {gestureLabel === "flat_hand" && "✋ MEDIUM"}
+                {gestureLabel === "thumbs_down" && "👎 HARD"}
+              </div>
+            )}
+
+            {/* hint bar */}
+            {showHint && currentCard.hint && (
+              <div className="absolute bottom-0 w-full bg-yellow-200/90 text-gray-900 text-center text-sm py-1 flex items-center justify-center">
+                <Lightbulb className="h-4 w-4 mr-1" /> {currentCard.hint}
+              </div>
+            )}
+
+            {/* desktop hint toggle */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowHint(h => !h)}
+              className="absolute top-2 right-2 hidden md:inline-flex bg-white/80"
+            >
+              <Lightbulb className="h-4 w-4 mr-1" />
+              {showHint ? "Hide" : "Hint"}
+            </Button>
+          </div>
+
+          {/* Flashcard (same width) */}
+          <div style={{ width: CAM_W }}>
+            <FlashcardView
+              key={`card-${cardKey}-gesture`}
+              card={currentCard}
+              showHint={showHint}
+              onReview={commitReview}
+              acceptGestureOnlyWhenFlipped
+              onFlipped={f => (flippedRef.current = f)}
+              interactionMode="gesture"
+            />
+          </div>
+
+          {/* nav buttons */}
+          <div className="flex justify-center gap-4">
+            <Button variant="outline" disabled={idx === 0 || busy}
+              onClick={() => setIdx(i => Math.max(i - 1, 0))}>
+              <ChevronLeft size={16} />
+            </Button>
+            <Button variant="outline"
+              disabled={idx === cards.length - 1 || busy}
+              onClick={() => setIdx(i => Math.min(i + 1, cards.length - 1))}>
+              <ChevronRight size={16} />
+            </Button>
+          </div>
+        </div>
+      </TabsContent>
+    </Tabs>
   );
 };

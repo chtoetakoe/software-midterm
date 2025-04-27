@@ -52,9 +52,9 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
   
 
   return (
-    <div className="w-full max-w-md mx-auto">
+    <div style={{ width: 640 }} className="mx-auto">
       <Card
-        className={cn("relative h-64 cursor-pointer w-full p-2 overflow-hidden", animating && "flip-card")}
+        className={cn("relative h-80 md:h-[420px] cursor-pointer w-full p-2 overflow-hidden", animating && "flip-card")}
         onClick={handleFlip}
       >
         <CardContent className="flex items-center justify-center h-full p-6 text-center">
