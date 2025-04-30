@@ -10,8 +10,8 @@ This project is a Chrome Extension + Web App for reviewing flashcards using hand
   - **Manual**: Flip card, click to rate difficulty
   - **Gesture**: Flip card, then use hand gestures to score:
     - 👍 Thumbs Up → Easy  
-    - ✋ Flat Hand → Medium  
-    - 👎 Thumbs Down → Hard
+    - ✋ Flat Hand → Hard  
+    - 👎 Thumbs Down → Wrong
 
 All flashcards and review data are stored in `localStorage`.
 
@@ -127,5 +127,5 @@ This project follows the "Spec → Test → Implement → Iterate → Document" 
 
 ---
 
-> Want to test a hand gesture? Flip a flashcard, then show your hand to the webcam 👋  
+ 
 

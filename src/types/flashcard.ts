@@ -1,7 +1,7 @@
 export enum FlashcardDifficulty {
   EASY = "EASY",
-  MEDIUM = "MEDIUM",
   HARD = "HARD",
+  WRONG = "WRONG",
 }
 
 export interface Flashcard {

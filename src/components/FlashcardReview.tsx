@@ -24,7 +24,7 @@ import { FlashcardView } from "./FlashcardView";
 import { Flashcard, FlashcardDifficulty } from "@/types/flashcard";
 import { storageService } from "@/services/storage-service";
 import { useToast } from "@/components/ui/use-toast";
-import {ChevronLeft, ChevronRight, Lightbulb,ThumbsUp, ThumbsDown, Hand,} from "lucide-react";
+import {ChevronLeft, ChevronRight, Lightbulb,} from "lucide-react";
 
 /* Constants for webcam size */
 const CAM_W = 640;
@@ -165,7 +165,7 @@ export const FlashcardReview: React.FC<Props> = ({
     {/* Instructions */}
     <p className="text-sm text-muted-foreground text-center">
       👋 Flip the card first, then use your hand to rate it:
-      <span className="ml-1 font-medium">👍 Easy, ✋ Medium, 👎 Hard</span>
+      <span className="ml-1 font-medium">👍 Easy, ✋ Hard, 👎 Wrong</span>
     </p>
 
     {/* Webcam */}
@@ -190,8 +190,8 @@ export const FlashcardReview: React.FC<Props> = ({
 
           // Gesture → Review Mapping
           if (g === "thumbs_up") commitReview(FlashcardDifficulty.EASY);
-          else if (g === "flat_hand") commitReview(FlashcardDifficulty.MEDIUM);
-          else if (g === "thumbs_down") commitReview(FlashcardDifficulty.HARD);
+          else if (g === "flat_hand") commitReview(FlashcardDifficulty.HARD);
+          else if (g === "thumbs_down") commitReview(FlashcardDifficulty.WRONG);
 
           // Cooldown before allowing next gesture
           setTimeout(() => {
@@ -205,8 +205,8 @@ export const FlashcardReview: React.FC<Props> = ({
       {gestureLabel && (
         <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-white/80 px-3 py-1 rounded text-sm font-semibold">
           {gestureLabel === "thumbs_up" && "👍 EASY"}
-          {gestureLabel === "flat_hand" && "✋ MEDIUM"}
-          {gestureLabel === "thumbs_down" && "👎 HARD"}
+          {gestureLabel === "flat_hand" && "✋ HARD"}
+          {gestureLabel === "thumbs_down" && "👎 WRONG"}
         </div>
       )}
 

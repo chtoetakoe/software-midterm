@@ -64,7 +64,7 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
       setAnimating(false);
     }, 400);
   };
-    // When the user clicks Easy/Medium/Hard or when a gesture happens
+    // When the user clicks Easy/Wring/Hard or when a gesture happens
   const handleReview = (difficulty: FlashcardDifficulty) => {
     
     // If gesture mode requires flipped card, do nothing until flipped
@@ -109,13 +109,13 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
 
       {interactionMode !== "gesture" && (
         <div className="flex justify-between mt-6">
-          <Button variant="destructive" onClick={() => handleReview(FlashcardDifficulty.HARD)}>
+          <Button variant="destructive" onClick={() => handleReview(FlashcardDifficulty.WRONG)}>
             <X size={18} />
-            <span>Hard</span>
+            <span>Wrong</span>
           </Button>
-          <Button variant="outline" onClick={() => handleReview(FlashcardDifficulty.MEDIUM)}>
+          <Button variant="outline" onClick={() => handleReview(FlashcardDifficulty.HARD)}>
             <AlertTriangle size={18} />
-            <span>Medium</span>
+            <span>Hard</span>
           </Button>
           <Button variant="default" onClick={() => handleReview(FlashcardDifficulty.EASY)}>
             <BadgeCheck size={18} />
