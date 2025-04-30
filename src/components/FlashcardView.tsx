@@ -1,38 +1,53 @@
 /**
- * Specification:
- * This component displays a single flashcard, supporting manual review or gesture-controlled flow.
- * 
- * Props:
- * - `card`: the flashcard to show
- * - `onReview(difficulty)`: callback triggered when user scores the card
- * - `showHint`: whether to show the hint section
- * - `acceptGestureOnlyWhenFlipped`: if true, disables gesture scoring until card is flipped
- * - `onFlipped(flipped)`: reports flipping state
- * - `interactionMode`: "manual" or "gesture"
- * 
- * Features:
- * - Front shows question; back shows answer and tags.
- * - User clicks card to flip it.
- * - Buttons are shown in manual mode for scoring.
+ * FlashcardView.tsx
+ * ---------------------------------------------------------------------------
+ * Renders ONE flashcard — front shows *question*, back shows *answer* — and
+ * lets the user score it as **Easy / Hard / Wrong** (buttons) *or* via hand
+ * gesture (when `interactionMode === "gesture"`).
+ *
+ *  ▸ Front  – displays `card.front` and, optionally, a *hint*.
+ *  ▸ Back   – displays `card.back` and tag chips.
+ *  ▸ Flip   – clicking the card toggles front/back.
+ *  ▸ Review – parent passes `onReview(difficulty)` which we call when
+ *             the user chooses a rating (either button or gesture).
+ *
+ * Props recap 
+ * ---------------------------------------------------------------------------
+ * card    – the Flashcard object to display.
+ * onReview(d) – callback when user rates the card.
+ * showHint     – if true, show the hint bar (front side only).
+ * acceptGestureOnlyWhenFlipped – in gesture‑mode, prevent scoring until user
+ *                                 has flipped the card at least once.
+ * onFlipped(f) – optional callback so parent can track flip state.
+ * interactionMode – "manual" | "gesture" (buttons hidden in gesture mode).
+ * ---------------------------------------------------------------------------
  */
 
 import React, { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Flashcard as FlashcardType, FlashcardDifficulty } from "@/types/flashcard";
+import {Flashcard as FlashcardType,FlashcardDifficulty,} from "@/types/flashcard";
 import { BadgeCheck, X, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getHint } from "@/logic/leitner"; // Re‑use helper for safe hint text
 
-// Props this component expects
+/* -------------------------------------------------------------------------
+ *  PROPS INTERFACE
+ * ---------------------------------------------------------------------- */
+
 interface FlashcardViewProps {
-  card: FlashcardType;  // the flashcard to display
-  onReview: (difficulty: FlashcardDifficulty) => void; // when user rates the card
-  showHint?: boolean;   // should hint be shown?
-  acceptGestureOnlyWhenFlipped?: boolean; // in gesture mode, must flip first?
-  onFlipped?: (flipped: boolean) => void;  // callback when card is flipped
-  interactionMode?: "manual" | "gesture"; // manual buttons vs gesture mode
-} 
-// FlashcardView displays one card — front shows question, back shows answer.
+  card: FlashcardType;
+  onReview: (difficulty: FlashcardDifficulty) => void;
+  showHint?: boolean;
+  acceptGestureOnlyWhenFlipped?: boolean;
+  onFlipped?: (flipped: boolean) => void;
+  interactionMode?: "manual" | "gesture";
+}
+
+/* -------------------------------------------------------------------------
+ *  COMPONENT
+ * ---------------------------------------------------------------------- */
+
 export const FlashcardView: React.FC<FlashcardViewProps> = ({
   card,
   onReview,
@@ -41,62 +56,74 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
   onFlipped,
   interactionMode = "manual",
 }) => {
-  const [flipped, setFlipped] = useState(false); // is card flipped?
-  const [animating, setAnimating] = useState(false); // animation delay
-  
-  // Reset flip state whenever we get a new card
+  /* ── local UI state ─────────────────────────────────────────────── */
+  const [flipped,    setFlipped]    = useState(false);
+  const [animating,  setAnimating]  = useState(false); // debounces rapid clicks
+
+  /* Reset flip whenever we get a *new* card or mode changes (gesture → manual) */
   useEffect(() => {
     setFlipped(false);
     onFlipped?.(false);
-  }, [card.id, interactionMode]); 
-  
-  // When user clicks the card, flip it (with delay to avoid spam clicks)
+  }, [card.id, interactionMode]);
+
+  /* Handle card flip */
   const handleFlip = () => {
-    if (animating) return;
+    if (animating) return;          // ignore spam‑clicks during 400 ms anim
+
     setAnimating(true);
     const next = !flipped;
     setFlipped(next);
-    
-    
-    onFlipped?.(next); // notify parent
+    onFlipped?.(next);
 
-    setTimeout(() => {
-      setAnimating(false);
-    }, 400);
+    setTimeout(() => setAnimating(false), 400);
   };
-    // When the user clicks Easy/Wring/Hard or when a gesture happens
-  const handleReview = (difficulty: FlashcardDifficulty) => {
-    
-    // If gesture mode requires flipped card, do nothing until flipped
-    if (acceptGestureOnlyWhenFlipped && !flipped) return;
-    if (!card) return; 
-    onReview(difficulty);
-  };
-  
 
+  /* Trigger parent callback when user selects a rating */
+  const handleReview = (d: FlashcardDifficulty) => {
+    if (acceptGestureOnlyWhenFlipped && !flipped) return; // gesture guard
+    onReview(d);
+  };
+
+  /* -------------------------------------------------------------------
+   *  RENDER
+   * ---------------------------------------------------------------- */
   return (
     <div style={{ width: 640 }} className="mx-auto">
+      {/* ---------------------------------------------------------------- */}
+      {/*  CARD (click‑to‑flip)                                             */}
+      {/* ---------------------------------------------------------------- */}
       <Card
-        className={cn("relative h-80 md:h-[420px] cursor-pointer w-full p-2 overflow-hidden", animating && "flip-card")}
+        className={cn(
+          "relative h-80 md:h-[420px] cursor-pointer w-full p-2 overflow-hidden",
+          animating && "flip-card"
+        )}
         onClick={handleFlip}
       >
         <CardContent className="flex items-center justify-center h-full p-6 text-center">
+          {/* FRONT ------------------------------------------------------ */}
           {!flipped ? (
             <div className="space-y-4">
               <p className="text-lg font-medium">{card.front}</p>
-              {showHint && card.hint && (
+
+              {/* Optional hint (uses getHint helper for safety/default). */}
+              {showHint && (
                 <div className="mt-4 text-sm text-muted-foreground">
-                  <p className="italic">Hint: {card.hint}</p>
+                  <p className="italic">Hint: {getHint(card)}</p>
                 </div>
               )}
             </div>
           ) : (
+            /* BACK ----------------------------------------------------- */
             <div className="space-y-4">
-              <p className="text-lg">{card.back || <span className="italic text-muted-foreground">No answer provided yet</span>}</p>
+              <p className="text-lg">
+                {card.back || (
+                  <span className="italic text-muted-foreground">No answer provided yet</span>
+                )}
+              </p>
               {card.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-4 justify-center">
-                  {card.tags.map((tag, idx) => (
-                    <span key={idx} className="px-2 py-1 bg-accent text-xs rounded-full">
+                  {card.tags.map((tag, i) => (
+                    <span key={i} className="px-2 py-1 bg-accent text-xs rounded-full">
                       {tag}
                     </span>
                   ))}
@@ -107,6 +134,9 @@ export const FlashcardView: React.FC<FlashcardViewProps> = ({
         </CardContent>
       </Card>
 
+      {/* ---------------------------------------------------------------- */}
+      {/*  REVIEW BUTTONS (hidden in gesture mode)                         */}
+      {/* ---------------------------------------------------------------- */}
       {interactionMode !== "gesture" && (
         <div className="flex justify-between mt-6">
           <Button variant="destructive" onClick={() => handleReview(FlashcardDifficulty.WRONG)}>
