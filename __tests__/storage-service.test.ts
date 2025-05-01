@@ -68,10 +68,10 @@ test("saves a review", () => {
 
   storageService.saveReview({
     cardId: card.id,
-    difficulty: FlashcardDifficulty.MEDIUM,
+    difficulty: FlashcardDifficulty.HARD,
   });
 
   const reviews = storageService.getCardReviews(card.id);
   expect(reviews).toHaveLength(1);
-  expect(reviews[0].difficulty).toBe(FlashcardDifficulty.MEDIUM);
+  expect(reviews[0].difficulty).toBe(FlashcardDifficulty.HARD);
 });
